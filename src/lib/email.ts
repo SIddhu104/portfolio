@@ -125,3 +125,82 @@ Received at: ${new Date().toLocaleString()}`,
   // If no email provider is configured, messages are saved in database / admin dashboard
   return { sent: false, method: "none", error: "No email service configured" };
 }
+
+interface SendReplyEmailParams {
+  recipientName: string;
+  recipientEmail: string;
+  originalSubject: string;
+  replyBody: string;
+  isInitialEmail?: boolean;
+}
+
+export async function sendReplyEmail({
+  recipientName,
+  recipientEmail,
+  originalSubject,
+  replyBody,
+  isInitialEmail = false,
+}: SendReplyEmailParams): Promise<{ sent: boolean; method?: string; error?: string }> {
+  const gmailUser = process.env.GMAIL_USER;
+  const gmailAppPassword = process.env.GMAIL_APP_PASSWORD?.replace(/\s/g, "");
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const subject = isInitialEmail
+    ? originalSubject
+    : originalSubject.toLowerCase().startsWith("re:")
+      ? originalSubject
+      : `Re: ${originalSubject}`;
+
+  if (gmailUser && gmailAppPassword) {
+    try {
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: { user: gmailUser, pass: gmailAppPassword },
+      });
+
+      await transporter.sendMail({
+        from: `"${process.env.PORTFOLIO_OWNER_NAME || "Portfolio Owner"} <${gmailUser}>`,
+        to: recipientEmail,
+        replyTo: gmailUser,
+        subject,
+        text: `Hi ${recipientName},\n\n${replyBody}\n\n---\nSent from my portfolio`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; color: #18181b;">
+            <p>Hi ${recipientName},</p>
+            <div style="white-space: pre-wrap; line-height: 1.6;">${replyBody}</div>
+            <hr style="margin-top:24px;border:0;border-top:1px solid #e4e4e7;">
+            <p style="font-size:12px;color:#71717a;">Sent from my portfolio</p>
+          </div>
+        `,
+      });
+      return { sent: true, method: "gmail" };
+    } catch (err: unknown) {
+      return { sent: false, method: "gmail", error: err instanceof Error ? err.message : "SMTP error" };
+    }
+  }
+
+  if (resendApiKey && resendApiKey.startsWith("re_")) {
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${resendApiKey}`,
+        },
+        body: JSON.stringify({
+          from: "Portfolio <onboarding@resend.dev>",
+          to: [recipientEmail],
+          reply_to: process.env.CONTACT_RECEIVER_EMAIL || gmailUser,
+          subject,
+          html: `<p>Hi ${recipientName},</p><div style="white-space: pre-wrap;">${replyBody}</div>`,
+        }),
+      });
+      if (res.ok) return { sent: true, method: "resend" };
+      const data = await res.json();
+      return { sent: false, method: "resend", error: data.message || "Resend error" };
+    } catch (err: unknown) {
+      return { sent: false, method: "resend", error: err instanceof Error ? err.message : "Network error" };
+    }
+  }
+
+  return { sent: false, method: "none", error: "No email service configured" };
+}

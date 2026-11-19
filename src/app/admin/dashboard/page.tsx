@@ -57,6 +57,15 @@ export default function AdminDashboardPage() {
   const [isTimelineModalOpen, setIsTimelineModalOpen] = useState(false);
 
   const [activeMessage, setActiveMessage] = useState<IContactMessage | null>(null);
+  const [isReplying, setIsReplying] = useState(false);
+  const [replyBody, setReplyBody] = useState("");
+  const [isComposeOpen, setIsComposeOpen] = useState(false);
+  const [composeEmail, setComposeEmail] = useState("");
+  const [composeSubject, setComposeSubject] = useState("");
+  const [composeBody, setComposeBody] = useState("");
+  const [messageSearch, setMessageSearch] = useState("");
+  const [messageFilter, setMessageFilter] = useState<"all" | "unread" | "read">("all");
+  const [sendingReply, setSendingReply] = useState(false);
   const [uploadingResume, setUploadingResume] = useState(false);
   const [resumeUploadNotice, setResumeUploadNotice] = useState<string | null>(null);
 
@@ -356,6 +365,64 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleOpenMessage = async (msg: IContactMessage) => {
+    setActiveMessage(msg);
+    setIsReplying(false);
+    setReplyBody("");
+
+    if (!msg.isRead) {
+      try {
+        await fetch("/api/contact", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: msg._id, isRead: true }),
+        });
+        setMessages((current) =>
+          current.map((item) =>
+            item._id === msg._id ? { ...item, isRead: true } : item
+          )
+        );
+      } catch {
+        showNotification("Could not mark message as read", "error");
+      }
+    }
+  };
+
+  const handleComposeEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!composeEmail.trim() || !composeSubject.trim() || !composeBody.trim()) {
+      showNotification("Email, subject, and message are required", "error");
+      return;
+    }
+
+    setSendingReply(true);
+    try {
+      const res = await fetch("/api/contact/reply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipientEmail: composeEmail.trim(),
+          recipientName: composeEmail.trim().split("@")[0],
+          originalSubject: composeSubject.trim(),
+          replyBody: composeBody.trim(),
+          isInitialEmail: true,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to send email");
+
+      showNotification("Email sent successfully!");
+      setComposeEmail("");
+      setComposeSubject("");
+      setComposeBody("");
+      setIsComposeOpen(false);
+    } catch (err: unknown) {
+      showNotification(err instanceof Error ? err.message : "Failed to send email", "error");
+    } finally {
+      setSendingReply(false);
+    }
+  };
+
   const handleDeleteMessage = async (id: string) => {
     if (!confirm("Delete this message?")) return;
     try {
@@ -367,6 +434,40 @@ export default function AdminDashboardPage() {
       }
     } catch {
       showNotification("Failed to delete message", "error");
+    }
+  };
+
+  const handleSendReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeMessage || !replyBody.trim()) {
+      showNotification("Enter a reply message", "error");
+      return;
+    }
+
+    setSendingReply(true);
+    try {
+      const res = await fetch("/api/contact/reply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messageId: activeMessage._id,
+          recipientEmail: activeMessage.email,
+          recipientName: activeMessage.name,
+          originalSubject: activeMessage.subject,
+          replyBody: replyBody.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to send reply");
+
+      showNotification("Reply sent successfully!");
+      setReplyBody("");
+      setActiveMessage(null);
+    } catch (err: unknown) {
+      showNotification(err instanceof Error ? err.message : "Failed to send reply", "error");
+    } finally {
+      setSendingReply(false);
     }
   };
 
@@ -406,6 +507,19 @@ export default function AdminDashboardPage() {
   const publishedCount = projects.filter((p) => p.isPublished).length;
   const draftCount = projects.length - publishedCount;
   const unreadCount = messages.filter((m) => !m.isRead).length;
+  const normalizedMessageSearch = messageSearch.trim().toLowerCase();
+  const filteredMessages = messages.filter((msg) => {
+    const matchesFilter =
+      messageFilter === "all" ||
+      (messageFilter === "read" ? msg.isRead : !msg.isRead);
+    const matchesSearch =
+      !normalizedMessageSearch ||
+      [msg.name, msg.email, msg.subject, msg.message]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedMessageSearch);
+    return matchesFilter && matchesSearch;
+  });
 
   return (
     <div className="min-h-screen bg-[#070709] text-zinc-100 flex flex-col md:flex-row selection:bg-purple-600/30">
@@ -584,6 +698,7 @@ export default function AdminDashboardPage() {
                       technologies: [],
                       features: [],
                       isPublished: true,
+                      isHighlighted: false,
                       order: projects.length + 1,
                     });
                     setIsProjectModalOpen(true);
@@ -972,6 +1087,7 @@ export default function AdminDashboardPage() {
                     features: ["Interactive user interface", "RESTful API backend"],
                     isPublished: true,
                     isFeatured: false,
+                    isHighlighted: false,
                     order: projects.length + 1,
                   });
                   setIsProjectModalOpen(true);
@@ -1016,6 +1132,11 @@ export default function AdminDashboardPage() {
                           {proj.description}
                         </p>
                         <div className="flex flex-wrap gap-1 mt-2">
+                          {proj.isHighlighted && (
+                            <span className="px-2 py-0.5 rounded bg-cyan-500/15 text-[10px] font-mono text-cyan-300 border border-cyan-500/30">
+                              Highlighted
+                            </span>
+                          )}
                           {proj.technologies.slice(0, 5).map((t) => (
                             <span
                               key={t}
@@ -1246,19 +1367,67 @@ export default function AdminDashboardPage() {
               </p>
             </div>
 
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsComposeOpen(true)}
+                className="px-4 py-2.5 rounded-xl bg-white text-black text-xs font-mono font-semibold hover:bg-zinc-200"
+              >
+                Compose Email
+              </button>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="search"
+                  value={messageSearch}
+                  onChange={(e) => setMessageSearch(e.target.value)}
+                  placeholder="Search name, email, subject, or message..."
+                  className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-white font-mono placeholder:text-zinc-600 focus:border-cyan-400 focus:outline-none"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                {(["all", "unread", "read"] as const).map((filter) => (
+                  <button
+                    key={filter}
+                    type="button"
+                    onClick={() => setMessageFilter(filter)}
+                    className={`px-3 py-2 rounded-xl text-xs font-mono capitalize ${
+                      messageFilter === filter
+                        ? "bg-white text-black"
+                        : "glass-pill text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    {filter}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="glass-panel rounded-3xl overflow-hidden border border-white/10">
-              {messages.length === 0 ? (
+              {filteredMessages.length === 0 ? (
                 <div className="p-12 text-center text-xs font-mono text-zinc-500">
-                  Inbox is currently empty.
+                  {messages.length === 0 ? "Inbox is currently empty." : "No messages match your filters."}
                 </div>
               ) : (
                 <div className="divide-y divide-white/5">
-                  {messages.map((msg) => (
+                  {filteredMessages.map((msg) => (
                     <div
                       key={msg._id}
                       className={`p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors ${
                         !msg.isRead ? "bg-purple-950/20" : "hover:bg-white/[0.02]"
                       }`}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => handleOpenMessage(msg)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          handleOpenMessage(msg);
+                        }
+                      }}
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2.5">
@@ -1280,27 +1449,24 @@ export default function AdminDashboardPage() {
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
-                        <a
-                          href={`mailto:${msg.email}?subject=Re: ${encodeURIComponent(msg.subject)}`}
+                        <button
+                          type="button"
+                                          onClick={(event) => {
+                                            event.stopPropagation();
+                            setActiveMessage(msg);
+                            setIsReplying(true);
+                            setReplyBody("");
+                          }}
                           className="px-3 py-1.5 rounded-xl bg-white text-black text-xs font-mono font-semibold hover:bg-zinc-200"
                         >
                           Reply Email
-                        </a>
-
-                        <button
-                          onClick={() => handleToggleReadMessage(msg)}
-                          className="p-2 rounded-xl glass-pill text-zinc-400 hover:text-white"
-                          title={msg.isRead ? "Mark as unread" : "Mark as read"}
-                        >
-                          {msg.isRead ? (
-                            <EyeOff className="w-4 h-4 text-zinc-500" />
-                          ) : (
-                            <Eye className="w-4 h-4 text-cyan-400" />
-                          )}
                         </button>
 
                         <button
-                          onClick={() => handleDeleteMessage(msg._id!)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDeleteMessage(msg._id!);
+                          }}
                           className="p-2 rounded-xl glass-pill text-rose-400 hover:bg-rose-500/20"
                           title="Delete message"
                         >
@@ -1412,6 +1578,182 @@ export default function AdminDashboardPage() {
           </div>
         )}
       </main>
+
+      {activeMessage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md"
+          onClick={() => setActiveMessage(null)}
+        >
+          <div
+            className="w-full max-w-3xl max-h-[88vh] overflow-y-auto rounded-2xl border border-white/10 bg-[#111218] shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-3 border-b border-white/[0.08] bg-[#111218]/95 backdrop-blur-xl">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-zinc-600" />
+                <span className="text-xs font-mono text-zinc-500">Portfolio Mail</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveMessage(null)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-500 hover:text-white hover:bg-white/[0.07]"
+                aria-label="Close message"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="px-5 sm:px-8 pt-7">
+              <h2 className="text-xl sm:text-2xl font-bold text-white leading-tight">
+                {activeMessage.subject}
+              </h2>
+
+              <div className="mt-5 flex items-start gap-3 pb-5 border-b border-white/[0.08]">
+                <div className="w-10 h-10 rounded-full shrink-0 bg-cyan-500/15 border border-cyan-400/20 flex items-center justify-center text-sm font-bold text-cyan-300">
+                  {activeMessage.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                    <div className="text-sm font-semibold text-white">{activeMessage.name}</div>
+                    {activeMessage.createdAt && (
+                      <time className="text-[11px] font-mono text-zinc-500">
+                        {new Date(activeMessage.createdAt).toLocaleString()}
+                      </time>
+                    )}
+                  </div>
+                  <div className="text-xs text-zinc-500 mt-0.5 break-all">
+                    {activeMessage.email} &nbsp;to me
+                  </div>
+                </div>
+              </div>
+
+              <article className="py-7 min-h-[190px]">
+                <p className="text-[15px] text-zinc-200 whitespace-pre-wrap leading-7">
+                  {activeMessage.message}
+                </p>
+              </article>
+            </div>
+
+            {isReplying ? (
+              <form onSubmit={handleSendReply} className="mx-5 sm:mx-8 mb-7 border border-white/[0.10] rounded-xl overflow-hidden bg-white/[0.025]">
+                <div className="px-4 py-3 border-b border-white/[0.08] text-xs text-zinc-400">
+                  Reply to <span className="text-zinc-200">{activeMessage.email}</span>
+                </div>
+                <textarea
+                  value={replyBody}
+                  onChange={(e) => setReplyBody(e.target.value)}
+                  required
+                  rows={6}
+                  autoFocus
+                  placeholder="Write a reply..."
+                  className="w-full px-4 py-4 text-sm text-white bg-transparent resize-y outline-none placeholder:text-zinc-600"
+                />
+                <div className="flex items-center justify-between px-4 py-3 border-t border-white/[0.08]">
+                  <button
+                    type="button"
+                    onClick={() => setIsReplying(false)}
+                    className="text-xs font-mono text-zinc-500 hover:text-white"
+                  >
+                    Discard
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={sendingReply}
+                    className="px-5 py-2 rounded-lg bg-cyan-400 text-black text-xs font-semibold hover:bg-cyan-300 disabled:opacity-50"
+                  >
+                    {sendingReply ? "Sending..." : "Send"}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="flex items-center gap-2 px-5 sm:px-8 pb-7">
+                <button
+                  type="button"
+                  onClick={() => setIsReplying(true)}
+                  className="px-4 py-2 rounded-lg border border-white/[0.12] text-xs font-mono text-zinc-300 hover:text-white hover:border-cyan-400/40"
+                >
+                  &#8617; Reply
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {isComposeOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="w-full max-w-xl glass-panel p-6 sm:p-7 rounded-3xl border border-white/20 bg-[#0c0d12]/95 shadow-2xl">
+            <div className="flex items-start justify-between gap-4 mb-5">
+              <div>
+                <h2 className="text-lg font-bold text-white">Compose Email</h2>
+                <p className="text-xs font-mono text-zinc-500 mt-1">
+                  Initiate a new email conversation
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsComposeOpen(false)}
+                className="text-zinc-500 hover:text-white text-xl leading-none"
+                aria-label="Close compose"
+              >
+                &times;
+              </button>
+            </div>
+
+            <form onSubmit={handleComposeEmail} className="space-y-4">
+              <div>
+                <label className="block text-xs font-mono text-zinc-400 mb-1.5">Recipient Email</label>
+                <input
+                  type="email"
+                  required
+                  value={composeEmail}
+                  onChange={(e) => setComposeEmail(e.target.value)}
+                  placeholder="company@example.com"
+                  className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-white font-mono focus:border-cyan-400 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-mono text-zinc-400 mb-1.5">Subject</label>
+                <input
+                  type="text"
+                  required
+                  value={composeSubject}
+                  onChange={(e) => setComposeSubject(e.target.value)}
+                  placeholder="Email subject"
+                  className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-white font-mono focus:border-cyan-400 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-mono text-zinc-400 mb-1.5">Message</label>
+                <textarea
+                  required
+                  rows={7}
+                  value={composeBody}
+                  onChange={(e) => setComposeBody(e.target.value)}
+                  placeholder="Write your email..."
+                  className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/10 text-sm text-white font-sans resize-y focus:border-cyan-400 focus:outline-none"
+                />
+              </div>
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsComposeOpen(false)}
+                  className="px-4 py-2 rounded-xl glass-pill text-xs font-mono text-zinc-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={sendingReply}
+                  className="px-5 py-2 rounded-xl bg-white text-black font-semibold text-xs font-mono hover:bg-zinc-200 disabled:opacity-50"
+                >
+                  {sendingReply ? "Sending..." : "Send Email"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* =========================================================================
           MODAL: PROJECT EDIT / CREATE
@@ -1593,6 +1935,18 @@ export default function AdminDashboardPage() {
                     className="rounded bg-zinc-800 text-purple-500"
                   />
                   <span>Featured Badge</span>
+                </label>
+
+                <label className="flex items-center gap-2 text-xs font-mono text-zinc-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editingProject.isHighlighted ?? false}
+                    onChange={(e) =>
+                      setEditingProject({ ...editingProject, isHighlighted: e.target.checked })
+                    }
+                    className="rounded bg-zinc-800 text-cyan-500"
+                  />
+                  <span>Highlight in Hero Section</span>
                 </label>
               </div>
 

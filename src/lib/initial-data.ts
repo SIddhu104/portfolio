@@ -39,6 +39,7 @@ export const initialProjects: IProject[] = [
     githubUrl: "https://github.com/siddheshkorade/ai-interview-simulator",
     liveUrl: "https://ai-interview-simulator.example.com",
     isFeatured: true,
+    isHighlighted: true,
     isPublished: true,
     order: 1
   },
@@ -59,6 +60,7 @@ export const initialProjects: IProject[] = [
     githubUrl: "https://github.com/siddheshkorade/it-universe-ecommerce",
     liveUrl: "https://it-universe.example.com",
     isFeatured: true,
+    isHighlighted: true,
     isPublished: true,
     order: 2
   },
@@ -79,6 +81,7 @@ export const initialProjects: IProject[] = [
     githubUrl: "https://github.com/siddheshkorade/portfolio",
     liveUrl: "https://siddheshkorade.dev",
     isFeatured: true,
+    isHighlighted: true,
     isPublished: true,
     order: 3
   }

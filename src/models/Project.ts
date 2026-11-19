@@ -20,6 +20,7 @@ const ProjectSchema = new Schema<IProjectDoc>(
     githubUrl: { type: String, default: "" },
     liveUrl: { type: String, default: "" },
     isFeatured: { type: Boolean, default: false },
+    isHighlighted: { type: Boolean, default: false },
     isPublished: { type: Boolean, default: true },
     order: { type: Number, default: 0 },
   },

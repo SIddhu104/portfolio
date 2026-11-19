@@ -29,6 +29,7 @@ export interface IProject {
   githubUrl?: string;
   liveUrl?: string;
   isFeatured: boolean;
+  isHighlighted: boolean;
   isPublished: boolean;
   order: number;
   createdAt?: string;

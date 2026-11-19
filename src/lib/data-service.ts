@@ -134,6 +134,7 @@ export async function createProject(data: Partial<IProject>): Promise<IProject> 
     githubUrl: data.githubUrl || "",
     liveUrl: data.liveUrl || "",
     isFeatured: data.isFeatured ?? false,
+    isHighlighted: data.isHighlighted ?? false,
     isPublished: data.isPublished ?? true,
     order: data.order ?? memoryProjects.length + 1,
     createdAt: new Date().toISOString(),

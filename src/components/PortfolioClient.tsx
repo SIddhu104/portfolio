@@ -31,6 +31,12 @@ export default function PortfolioClient({
   initialSettings,
 }: PortfolioClientProps) {
   const [selectedProject, setSelectedProject] = useState<IProject | null>(null);
+  const highlightedProjects = initialProjects
+    .filter((project) => project.isHighlighted)
+    .slice(0, 3);
+  const heroProjects = highlightedProjects.length > 0
+    ? highlightedProjects
+    : initialProjects.filter((project) => project.isFeatured).slice(0, 3);
 
   return (
     <div className="relative min-h-screen bg-[#070709] text-zinc-100 selection:bg-purple-600/30 selection:text-white">
@@ -50,7 +56,7 @@ export default function PortfolioClient({
         {/* 1. Hero Section matching reference screenshot */}
         <HeroSection
           profile={initialProfile}
-          featuredProjects={initialProjects}
+          featuredProjects={heroProjects}
           onOpenProjectModal={(p) => setSelectedProject(p)}
         />
 

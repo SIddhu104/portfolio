@@ -123,8 +123,8 @@ export default function HeroSection({
                 </div>
               </div>
 
-              <div className="md:col-span-7 text-right">
-                <span className="hero-title block text-5xl sm:text-7xl md:text-8xl lg:text-8xl tracking-tighter text-white/95">
+              <div className="md:col-span-7 text-right relative z-30">
+                <span className="hero-title block relative z-30 text-5xl sm:text-7xl md:text-8xl lg:text-8xl tracking-tighter text-white/95">
                   Developer
                 </span>
               </div>
@@ -172,14 +172,14 @@ export default function HeroSection({
           </div>
 
           {/* Right Column: 3D WebGL Scene */}
-          <div className="lg:col-span-5 h-[340px] sm:h-[400px] lg:h-[480px] w-full relative">
+          <div className="lg:col-span-5 h-[340px] sm:h-[400px] lg:h-[480px] w-full relative z-0">
             <div className="absolute inset-0 rounded-3xl bg-gradient-to-tr from-purple-500/10 via-transparent to-cyan-500/10 border border-white/10 backdrop-blur-sm overflow-hidden flex items-center justify-center">
               <HeroScene />
             </div>
           </div>
         </div>
 
-        {/* Project Preview Showcase Cards (3 Cards Row exactly like design) */}
+        {/* Highlighted Project Showcase Cards */}
         <div className="mt-8 pt-8 border-t border-white/[0.08]">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
             {/* Card 1: Left Project Preview */}
