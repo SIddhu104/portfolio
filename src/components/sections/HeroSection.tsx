@@ -58,25 +58,9 @@ export default function HeroSection({
     return () => clearTimeout(timer);
   }, [displayText, isDeleting, currentRoleIndex, roles]);
 
-  const primaryFeatured = featuredProjects[0] || {
-    title: "AI Interview Simulator",
-    subtitle: "MERN stack app",
-    description: "An AI-driven platform that generates custom interview questions by parsing resumes and JDs using Gemini API.",
-    technologies: ["MERN Stack", "Gemini API", "React.js", "Tailwind CSS"],
-    thumbnail: "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
-  };
-
-  const secondaryLeft = featuredProjects[1] || {
-    title: "IT Universe",
-    subtitle: "Full-Stack E-Commerce",
-    description: "Hardware & computer components e-commerce platform.",
-  };
-
-  const secondaryRight = featuredProjects[2] || {
-    title: "Full-Stack Portfolio",
-    subtitle: "MERN & React Showcase",
-    description: "Modern developer portfolio and admin management system.",
-  };
+  const primaryFeatured = featuredProjects[0];
+  const secondaryLeft = featuredProjects[1];
+  const secondaryRight = featuredProjects[2];
 
   return (
     <section className="relative pt-28 pb-16 md:pt-36 md:pb-24 overflow-hidden">
@@ -179,76 +163,87 @@ export default function HeroSection({
           </div>
         </div>
 
-        {/* Highlighted Project Showcase Cards */}
-        <div className="mt-8 pt-8 border-t border-white/[0.08]">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
-            {/* Card 1: Left Project Preview */}
+        {featuredProjects.length > 0 && (
+          <div className="mt-8 pt-8 border-t border-white/[0.08]">
             <div
-              onClick={() => onOpenProjectModal(secondaryLeft as IProject)}
-              className="glass-panel glass-panel-hover rounded-2xl p-5 cursor-pointer flex flex-col justify-between min-h-[170px]"
+              className={`grid grid-cols-1 gap-4 lg:gap-6 ${
+                featuredProjects.length === 1
+                  ? "md:grid-cols-1 max-w-xl mx-auto"
+                  : featuredProjects.length === 2
+                    ? "md:grid-cols-2"
+                    : "md:grid-cols-3"
+              }`}
             >
-              <div>
-                <span className="text-xs font-mono tracking-wider text-zinc-500 uppercase block">
-                  [{secondaryLeft.title}]
-                </span>
-                <p className="mt-2 text-xs text-zinc-400 line-clamp-2">{secondaryLeft.description}</p>
-              </div>
-              <div className="flex items-center justify-between text-xs font-mono text-zinc-400 pt-4">
-                <span>{secondaryLeft.subtitle || "Full-Stack Project"}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </div>
-            </div>
-
-            {/* Card 2: Featured Center Card with Glow Gradient Backdrop (Matching Screenshot) */}
-            <div
-              onClick={() => onOpenProjectModal(primaryFeatured as IProject)}
-              className="relative rounded-2xl overflow-hidden p-6 cursor-pointer border border-white/20 transition-all duration-300 hover:scale-[1.02] shadow-[0_12px_40px_-10px_rgba(139,92,246,0.3)] flex flex-col justify-between min-h-[200px]"
-              style={{
-                background:
-                  "radial-gradient(circle at 30% 30%, rgba(139, 92, 246, 0.45), rgba(59, 130, 246, 0.25) 50%, rgba(13, 14, 18, 0.9) 100%)",
-              }}
-            >
-              <div className="relative z-10">
-                <span className="text-xs font-mono tracking-wider text-purple-300 uppercase block font-semibold">
-                  [{primaryFeatured.title}] &mdash; {primaryFeatured.subtitle || "MERN stack app"}
-                </span>
-                <p className="mt-2 text-xs sm:text-sm text-zinc-200 line-clamp-3 leading-relaxed">
-                  {primaryFeatured.description}
-                </p>
-              </div>
-
-              <div className="relative z-10 pt-4 flex items-center justify-between">
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white text-black text-xs font-semibold hover:bg-zinc-200 transition-colors"
+              {secondaryLeft && (
+                <div
+                  onClick={() => onOpenProjectModal(secondaryLeft)}
+                  className="glass-panel glass-panel-hover rounded-2xl p-5 cursor-pointer flex flex-col justify-between min-h-[170px]"
                 >
-                  <span>View project</span>
-                  <ExternalLink className="w-3 h-3" />
-                </button>
-                <div className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center text-white/80">
-                  <ArrowRight className="w-4 h-4" />
+                  <div>
+                    <span className="text-xs font-mono tracking-wider text-zinc-500 uppercase block">
+                      [{secondaryLeft.title}]
+                    </span>
+                    <p className="mt-2 text-xs text-zinc-400 line-clamp-2">{secondaryLeft.description}</p>
+                  </div>
+                  <div className="flex items-center justify-between text-xs font-mono text-zinc-400 pt-4">
+                    <span>{secondaryLeft.subtitle || "Full-Stack Project"}</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </div>
                 </div>
-              </div>
-            </div>
+              )}
 
-            {/* Card 3: Right Project Preview */}
-            <div
-              onClick={() => onOpenProjectModal(secondaryRight as IProject)}
-              className="glass-panel glass-panel-hover rounded-2xl p-5 cursor-pointer flex flex-col justify-between min-h-[170px]"
-            >
-              <div>
-                <span className="text-xs font-mono tracking-wider text-zinc-500 uppercase block">
-                  [{secondaryRight.title}]
-                </span>
-                <p className="mt-2 text-xs text-zinc-400 line-clamp-2">{secondaryRight.description}</p>
-              </div>
-              <div className="flex items-center justify-between text-xs font-mono text-zinc-400 pt-4">
-                <span>{secondaryRight.subtitle || "Featured App"}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </div>
+              {primaryFeatured && (
+                <div
+                  onClick={() => onOpenProjectModal(primaryFeatured)}
+                  className="relative rounded-2xl overflow-hidden p-6 cursor-pointer border border-white/20 transition-all duration-300 hover:scale-[1.02] shadow-[0_12px_40px_-10px_rgba(139,92,246,0.3)] flex flex-col justify-between min-h-[200px]"
+                  style={{
+                    background:
+                      "radial-gradient(circle at 30% 30%, rgba(139, 92, 246, 0.45), rgba(59, 130, 246, 0.25) 50%, rgba(13, 14, 18, 0.9) 100%)",
+                  }}
+                >
+                  <div className="relative z-10">
+                    <span className="text-xs font-mono tracking-wider text-purple-300 uppercase block font-semibold">
+                      [{primaryFeatured.title}] &mdash; {primaryFeatured.subtitle || "Highlighted Project"}
+                    </span>
+                    <p className="mt-2 text-xs sm:text-sm text-zinc-200 line-clamp-3 leading-relaxed">
+                      {primaryFeatured.description}
+                    </p>
+                  </div>
+                  <div className="relative z-10 pt-4 flex items-center justify-between">
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white text-black text-xs font-semibold hover:bg-zinc-200 transition-colors"
+                    >
+                      <span>View project</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </button>
+                    <div className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center text-white/80">
+                      <ArrowRight className="w-4 h-4" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {secondaryRight && (
+                <div
+                  onClick={() => onOpenProjectModal(secondaryRight)}
+                  className="glass-panel glass-panel-hover rounded-2xl p-5 cursor-pointer flex flex-col justify-between min-h-[170px]"
+                >
+                  <div>
+                    <span className="text-xs font-mono tracking-wider text-zinc-500 uppercase block">
+                      [{secondaryRight.title}]
+                    </span>
+                    <p className="mt-2 text-xs text-zinc-400 line-clamp-2">{secondaryRight.description}</p>
+                  </div>
+                  <div className="flex items-center justify-between text-xs font-mono text-zinc-400 pt-4">
+                    <span>{secondaryRight.subtitle || "Highlighted Project"}</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-        </div>
+        )}
       </div>
     </section>
   );

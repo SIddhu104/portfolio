@@ -833,8 +833,8 @@ export default function AdminDashboardPage() {
                 <label className="block text-xs font-mono uppercase text-zinc-400 mb-1.5">
                   Developer Titles (Comma Separated)
                 </label>
-                <input
-                  type="text"
+                <textarea
+                  rows={3}
                   value={profile.titles.join(", ")}
                   onChange={(e) =>
                     setProfile({
@@ -842,8 +842,12 @@ export default function AdminDashboardPage() {
                       titles: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
                     })
                   }
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-sm text-white font-mono focus:border-cyan-400 focus:outline-none"
+                  placeholder="Full-Stack Developer, MERN Stack Developer, React.js Developer"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-sm text-white font-mono resize-y focus:border-cyan-400 focus:outline-none"
                 />
+                <p className="text-[10px] font-mono text-zinc-500 mt-1.5">
+                  Add as many titles as needed. Separate each title with a comma.
+                </p>
               </div>
 
               <div>
