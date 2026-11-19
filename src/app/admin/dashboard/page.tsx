@@ -37,6 +37,7 @@ export default function AdminDashboardPage() {
 
   // Data states
   const [profile, setProfile] = useState<IProfile | null>(null);
+  const [titlesInput, setTitlesInput] = useState("");
   const [projects, setProjects] = useState<IProject[]>([]);
   const [skills, setSkills] = useState<ISkill[]>([]);
   const [timeline, setTimeline] = useState<ITimeline[]>([]);
@@ -138,6 +139,7 @@ export default function AdminDashboardPage() {
       if (pRes.ok) {
         const d = await pRes.json();
         setProfile(d.profile);
+        setTitlesInput((d.profile.titles || []).join(", "));
       }
       if (projRes.ok) {
         const d = await projRes.json();
@@ -187,7 +189,8 @@ export default function AdminDashboardPage() {
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile) return;
-    const normalizedTitles = profile.titles
+    const normalizedTitles = titlesInput
+      .split(",")
       .map((title) => title.trim())
       .filter(Boolean);
     const profileToSave = { ...profile, titles: normalizedTitles };
@@ -199,6 +202,7 @@ export default function AdminDashboardPage() {
         body: JSON.stringify(profileToSave),
       });
       if (res.ok) {
+        setTitlesInput(normalizedTitles.join(", "));
         showNotification("Profile updated successfully!");
       } else {
         throw new Error("Failed to update profile");
@@ -836,56 +840,17 @@ export default function AdminDashboardPage() {
 
               <div>
                 <label className="block text-xs font-mono uppercase text-zinc-400 mb-1.5">
-                  Developer Titles
+                  Developer Titles (Comma Separated)
                 </label>
-                <div className="space-y-2">
-                  {profile.titles.map((title, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={title}
-                        onChange={(e) =>
-                          setProfile({
-                            ...profile,
-                            titles: profile.titles.map((currentTitle, titleIndex) =>
-                              titleIndex === index ? e.target.value : currentTitle
-                            ),
-                          })
-                        }
-                        placeholder="Full-Stack Developer"
-                        className="min-w-0 flex-1 px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-sm text-white font-mono focus:border-cyan-400 focus:outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setProfile({
-                            ...profile,
-                            titles: profile.titles.filter((_, titleIndex) => titleIndex !== index),
-                          })
-                        }
-                        className="w-10 h-10 shrink-0 inline-flex items-center justify-center rounded-xl border border-red-400/20 text-red-400 hover:bg-red-400/10 transition-colors"
-                        aria-label={`Remove title ${index + 1}`}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setProfile({
-                        ...profile,
-                        titles: [...profile.titles, ""],
-                      })
-                    }
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-cyan-400/20 text-cyan-300 text-xs font-mono hover:bg-cyan-400/10 transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add title
-                  </button>
-                </div>
+                <textarea
+                  rows={3}
+                  value={titlesInput}
+                  onChange={(e) => setTitlesInput(e.target.value)}
+                  placeholder="Full-Stack Developer, MERN Stack Developer, React.js Developer"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-sm text-white font-mono resize-y focus:border-cyan-400 focus:outline-none"
+                />
                 <p className="text-[10px] font-mono text-zinc-500 mt-1.5">
-                  Add or remove as many titles as needed.
+                  Add as many titles as needed. Separate each title with a comma.
                 </p>
               </div>
 
