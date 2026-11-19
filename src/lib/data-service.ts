@@ -85,12 +85,19 @@ export async function getProfileData(): Promise<IProfile> {
 }
 
 export async function updateProfileData(data: Partial<IProfile>): Promise<IProfile> {
+  const normalizedData = { ...data };
+  if (Array.isArray(normalizedData.titles)) {
+    normalizedData.titles = normalizedData.titles
+      .filter((title): title is string => typeof title === "string")
+      .map((title) => title.trim())
+      .filter(Boolean);
+  }
   const db = await connectDB();
   if (db) {
-    const updated = await Profile.findOneAndUpdate({}, { $set: data }, { new: true, upsert: true }).lean();
+    const updated = await Profile.findOneAndUpdate({}, { $set: normalizedData }, { new: true, upsert: true }).lean();
     return JSON.parse(JSON.stringify(updated));
   }
-  memoryProfile = { ...memoryProfile, ...data };
+  memoryProfile = { ...memoryProfile, ...normalizedData };
   return memoryProfile;
 }
 
